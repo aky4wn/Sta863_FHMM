@@ -11,10 +11,6 @@ import scipy
 import editdistance
 import sklearn.metrics
 import statsmodels.api as sm
-## Scripts containing inference algorithms
-from BaumWelch import *
-from BaumWelchLR import *
-from TVAR import *
 
 ## Helper functions for working with note pitch representation
 
@@ -295,7 +291,7 @@ class pre_process(object):
         min_note = quarter_note
         actual = np.arange(0, min_note*measures*num, min_note).astype(int) 
         time = np.array([find_nearest(actual, time[i]) for i in range(len(time))]).astype(int)
-        return(quarter_note, num, denom, key, measures, time, notes, velocity, song, song_model.index)
+        return(quarter_note, num, denom, key, measures, time,  notes, velocity, song, song_model.index)
 
     
 ##############    
@@ -326,6 +322,27 @@ def find_vel(newNotes, velocity):
     newVelocities = newVelocities.astype(int)    
 
     return(newVelocities)
+
+def process_metrics(filename):
+    metrics5 = pd.read_csv(filename, header = None)
+    rmse5 = np.sqrt(((metrics5 - metrics5.loc[0,:])**2).sum(axis = 0)/metrics5.shape[0])
+    print_metrics = pd.DataFrame(columns = ['entropy', 'mutual_info', 'edit', 'h_ints', 'm_ints',
+                                           'percent', 'note_counts', 'acf', 'pacf'])
+
+    hints = metrics5.loc[:, 3:15]
+    mints = metrics5.loc[:, 15:27]
+    perc = metrics5.loc[:, 27:33]
+    note_count = metrics5.loc[:, 33:metrics5.shape[1]-2*41]
+    acf = metrics5.loc[:, metrics5.shape[1]-2*41:]
+    pacf = metrics5.loc[:, metrics5.shape[1]-41:]
+    print_metrics.loc[0] = [np.mean(metrics5.iloc[1:, 0]), np.mean(metrics5.iloc[1:, 1]), np.mean(metrics5.iloc[1:, 2]), 
+                            np.mean(rmse5[3:15]), np.mean(rmse5[15:27]),
+                              np.mean(rmse5[27:33]), np.mean(rmse5[33:metrics5.shape[1]-2*41]),
+                              np.mean(rmse5[metrics5.shape[1]-2*41:]), np.mean(rmse5[metrics5.shape[1]-41:])]
+
+    print(metrics5.shape)
+    return(metrics5, rmse5, hints, mints, perc, note_count, acf, pacf, print_metrics)
+
 
 ##########################
 ## Inference Algorithms ##
